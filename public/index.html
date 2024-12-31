@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Mindmap Viewer</title>
+    <link rel="stylesheet" href="https://unpkg.com/jsmind@0.5.4/style/jsmind.css" integrity="sha384-1nTEMjWXLLPe1f1aBitnnwTmPw8N71MrZQQBMQn7ua9HnvdBZrPzhT1DMp2h+baG" crossorigin="anonymous">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .controls {
+            padding: 10px;
+            background: #f5f5f5;
+            border-bottom: 1px solid #ddd;
+        }
+        .button {
+            padding: 8px 16px;
+            margin: 0 4px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .button:hover {
+            background: #45a049;
+        }
+        #jsmind_container {
+            flex: 1;
+            background: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <button class="button" onclick="saveMindmap()">Save to Server</button>
+        <button class="button" onclick="loadMindmap()">Load from Server</button>
+        <button class="button" onclick="downloadMindmap()">Download File</button>
+        <input type="file" id="fileInput" style="display:none" onchange="uploadMindmap(event)">
+        <button class="button" onclick="document.getElementById('fileInput').click()">Upload File</button>
+    </div>
+    <div id="jsmind_container"></div>
+
+    <script src="https://unpkg.com/jsmind@0.5.4/js/jsmind.js" integrity="sha384-R5+m5beLoKFGYYfHYhJjZOFuYIfT3HUmn/8DwFvhVikHnGKsaBes0K45Zme67izm" crossorigin="anonymous"></script>
+    <script type="module">
+        import { getMapName, saveToServer, loadFromServer } from './js/mindmap-utils.js';
+        
+        let _jm = null;
+
+        // Initialize mindmap
+        async function init() {
+            const options = {
+                container: 'jsmind_container',
+                theme: 'primary',
+                editable: true,
+                view: {
+                    engine: 'canvas',
+                    hspace: 30,
+                    vspace: 20,
+                    line_width: 2,
+                    line_color: '#555'
+                }
+            };
+            _jm = new jsMind(options);
+            await loadMindmap();
+        }
+
+        // Save to server
+        async function saveMindmap() {
+            try {
+                const success = await saveToServer(_jm.get_data());
+                if (success) {
+                    alert('Mindmap saved successfully');
+                }
+            } catch (error) {
+                console.error('Error saving:', error);
+                alert('Error saving mindmap');
+            }
+        }
+
+        // Load from server
+        async function loadMindmap() {
+            try {
+                const data = await loadFromServer();
+                _jm.show(data);
+            } catch (error) {
+                console.error('Error loading:', error);
+                alert('Error loading mindmap');
+            }
+        }
+
+        // Download file
+        function downloadMindmap() {
+            const data = _jm.get_data();
+            const mapName = getMapName();
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${mapName}.jm`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Upload file
+        function uploadMindmap(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    _jm.show(data);
+                } catch (error) {
+                    alert('Error loading mindmap file');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = null;
+        }
+
+        // Make functions globally available
+        window.saveMindmap = saveMindmap;
+        window.loadMindmap = loadMindmap;
+        window.downloadMindmap = downloadMindmap;
+        window.uploadMindmap = uploadMindmap;
+
+        // Initialize on load
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

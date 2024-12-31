@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mindmap Viewer</title>
+    <style>
+        .file-controls {
+            margin: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .button {
+            padding: 8px 16px;
+            margin: 0 8px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="file-controls">
+        <button class="button" onclick="saveMindmap()">Save Mindmap</button>
+        <button class="button" onclick="loadMindmap()">Load Mindmap</button>
+        <input type="file" id="fileInput" style="display: none" accept=".jm">
+    </div>
+    <div id="mindmap-container"></div>
+
+    <script>
+        let currentMindmap = null;
+
+        // Save mindmap to file
+        function saveMindmap() {
+            if (!currentMindmap) {
+                alert('No mindmap data to save');
+                return;
+            }
+
+            const blob = new Blob([JSON.stringify(currentMindmap, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'cardiac_imaging.jm';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Load mindmap from file
+        function loadMindmap() {
+            document.getElementById('fileInput').click();
+        }
+
+        // Handle file selection
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    currentMindmap = JSON.parse(e.target.result);
+                    // Here you would update your mindmap visualization
+                    console.log('Mindmap loaded:', currentMindmap);
+                } catch (error) {
+                    alert('Error loading mindmap file');
+                    console.error(error);
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        // Load initial mindmap data
+        fetch('cardiac_imaging.jm')
+            .then(response => response.json())
+            .then(data => {
+                currentMindmap = data;
+                console.log('Initial mindmap loaded:', currentMindmap);
+            })
+            .catch(error => {
+                console.error('Error loading initial mindmap:', error);
+            });
+    </script>
+</body>
+</html>
